@@ -22,26 +22,41 @@ class Participant:
         self.hit_score = hit_score_max
         self.current_score = 0
         self.card_hand = []
+        self.play_status = ""
+        self.outcome = ""
 
+    def deal_and_adjust(self):
+        self.card_hand.append(deal_a_card())
 
-def show_hand(participant, show_dealer_total):
+        self.current_score = sum(self.card_hand)
 
-    hold_hand = participant.card_hand[:]
+        while 11 in self.card_hand and self.current_score >= 21:
+            ace_index = self.card_hand.index(11)
 
-    if participant.player_type == "D":
-        display_name = "Dealer"
+            self.card_hand[ace_index] = 1
+            self.current_score = sum(self.card_hand)
 
-        if not show_dealer_total:
-            del hold_hand[0]
-            hold_hand.insert(0, "-")
-            display_string = f"{display_name:>9}: {hold_hand}"
+        if self.current_score > 21:
+            self.play_status = "Bust"
+
+    def show_hand(self, show_dealer_total):
+
+        hold_hand = self.card_hand[:]
+
+        if self.player_type == "D":
+            display_name = "Dealer"
+
+            if not show_dealer_total:
+                del hold_hand[0]
+                hold_hand.insert(0, "-")
+                display_string = f"{display_name:>9}: {hold_hand}"
+            else:
+                display_string = f"{display_name:>9}: {hold_hand} {self.current_score}"
         else:
-            display_string = f"{display_name:>9}: {hold_hand} {participant.current_score}"
-    else:
-        display_name = f"Player {participant.player_number:02d}"
-        display_string = f"{display_name:>9}: {hold_hand} {participant.current_score}"
+            display_name = f"Player {self.player_number:02d}"
+            display_string = f"{display_name:>9}: {hold_hand} {self.current_score}"
 
-    print(f"{display_string}")
+        print(f"{display_string} {self.outcome}")
 
 
 def player_name_str(player_number):
@@ -54,84 +69,81 @@ def deal_a_card():
     return cards[random.randint(0, 12)]
 
 
-# TODO Start of main()
-
-# TODO 01 Play a game? Prompt
-# TODO 01.01 init players
-finish = False
+finish_game = False
 player_turn_end = False
-while not finish:
-    play = input("Play Blackjack? ").lower()
-    if play == "y":
+while not finish_game:
+    play_game = input("Play Blackjack? ").lower()
+    if play_game == "y":
         player_turn_end = False
     else:
-        finish = True
+        finish_game = True
 
-    while not finish and not player_turn_end:
+    while not finish_game and not player_turn_end:
         # Setup/reset
         player_count = 0
 
-        # store dealer at index zero in player list
+        # Initialise dealer at index zero in player list
         player_list = [Participant("Dealer", "D", 0, 17)]
 
-        # add players (current range: one player only)
+        # Initialise players (current range: one player only)
         for i in range(1, 2):
             player_count += 1
             player_list.append(Participant(player_name_str(player_count), "P", player_count, 21))
 
             # Deal 2 cards each
-            for player_delt in player_list:
+            for player_being_delt in player_list:
                 for j in range(0, 2):
-                    player_delt.card_hand.append(deal_a_card())
-                    player_delt.current_score = sum(player_delt.card_hand)
-            # test print area
-            for n in range(len(player_list)):
-                show_hand(player_list[n], False)
-            # Loop through all players
-            for player_turn in range(1, len(player_list)):
+                    player_being_delt.deal_and_adjust()
+
+            # Show hands of cards with dealer's second card hidden
+            for all_the_participants in player_list:
+                all_the_participants.show_hand(False)
+
+            # Loop through all players, excluding dealer
+            for current_players_turn in player_list[1:]:
                 player_turn_end = False
                 while not player_turn_end:
-                    turn_pass = input(
-                        f"Player {player_list[player_turn].player_number:02d} "
+                    player_passes = input(
+                        f"Player {current_players_turn.player_number:02d} "
                         f"Type 'y' to get another card, type 'n' to pass ").lower()
-                    if turn_pass == "n":
+                    if player_passes == "n":
                         player_turn_end = True
+                        current_players_turn.play_status = "Hold"
                     else:
-                        # TODO functionalise the card handling for players and the dealer
+                        current_players_turn.deal_and_adjust()
+                        player_list[0].show_hand(False)
+                        current_players_turn.show_hand(False)
 
-
-                        player_list[player_turn].card_hand.append(deal_a_card())
-                        # DEBUG CODE
-                        player_list[player_turn].card_hand[-1] = 11
-
-                        player_list[player_turn].current_score = sum(player_list[player_turn].card_hand)
-
-
-
-                        while 11 in player_list[player_turn].card_hand and player_list[player_turn].current_score >= 21:
-                            ace_index = player_list[player_turn].card_hand.index(11)
-
-                            player_list[player_turn].card_hand[ace_index] = 2
-                            player_list[player_turn].current_score = sum(player_list[player_turn].card_hand)
-
-
-
-                    show_hand(player_list[player_turn], False)
-                    if player_list[player_turn].current_score >= 21:
+                    if current_players_turn.current_score >= 21:
                         player_turn_end = True
 
             dealer_turn_end = False
+
             while not dealer_turn_end:
                 if player_list[0].current_score >= player_list[0].hit_score:
                     dealer_turn_end = True
                 else:
-                    player_list[0].card_hand.append(deal_a_card())
-                    player_list[0].current_score = sum(player_list[0].card_hand)
+                    player_list[0].deal_and_adjust()
+            # Show hands of cards with dealer's second card shown
 
-            show_hand(player_list[0], True)
-            show_hand(player_list[player_turn], True)
+            for participant in player_list[1:]:
+                #  work out winners
 
-        # TODO Thank you and goodnight
+                if participant.play_status == "Bust":
+                    participant.outcome = "Lose"
+                    player_list[0].outcome = "Win"
+                elif player_list[0].play_status == "Bust":
+                    participant.outcome = "Win"
+                    player_list[0].outcome = "Lose"
+                elif player_list[0].current_score > participant.current_score:
+                    participant.outcome = "Lose"
+                    player_list[0].outcome = "Win"
+                elif player_list[0].current_score == participant.current_score:
+                    participant.outcome = "Draw"
+                    player_list[0].outcome = "Draw"
+                else:
+                    participant.outcome = "Win"
+                    player_list[0].outcome = "Lose"
 
-        # player_list[1].current_score = 12
-        # player_list[0].current_score = 17
+            for participant in player_list:
+                participant.show_hand(True)
