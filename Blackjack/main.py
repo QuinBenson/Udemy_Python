@@ -6,12 +6,14 @@
 # The Ace can count as 11 or 1.
 # Use the following list as the deck of cards:
 import random
+import prettytable as pt
 
 # The cards in the list have equal probability of being drawn.
 # Cards are not removed from the deck as they are drawn.
 # The computer is the dealer.
 cards = [11, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10]
 
+HandTable = pt.PrettyTable(border=False, header=False)
 
 class Participant:
 
@@ -39,24 +41,31 @@ class Participant:
         if self.current_score > 21:
             self.play_status = "Bust"
 
-    def show_hand(self, show_dealer_total):
 
+    def show_hand(self, show_dealer_total):
+        """displays the hand of cards being played by the invoked participant.
+        NB show_dealer_total is only applicable to the Dealer participant and otherwise ignored"""
+        display_list=[]
         hold_hand = self.card_hand[:]
+        hold_score = str(self.current_score)
 
         if self.player_type == "D":
             display_name = "Dealer"
 
             if not show_dealer_total:
                 del hold_hand[0]
-                hold_hand.insert(0, "-")
-                display_string = f"{display_name:>9}: {hold_hand}"
+                hold_hand.insert(0, "—")
+
+                hold_score = ""
             else:
-                display_string = f"{display_name:>9}: {hold_hand} {self.current_score}"
+                pass
         else:
             display_name = f"Player {self.player_number:02d}"
-            display_string = f"{display_name:>9}: {hold_hand} {self.current_score}"
+        str1 = ' '.join(str(e) for e in hold_hand)
+        str1 = "[" + str1 + "]"
 
-        print(f"{display_string} {self.outcome}")
+        display_list.extend([display_name, str1, hold_score,self.outcome])
+        return display_list
 
 
 def player_name_str(player_number):
@@ -97,7 +106,21 @@ while not finish_game:
 
             # Show hands of cards with dealer's second card hidden
             for all_the_participants in player_list:
-                all_the_participants.show_hand(False)
+                HandTable.add_row( all_the_participants.show_hand(False))
+
+            #HandTable.left_padding_width =  #=max(player_list, key=len)
+            # HandTable._max_width = {"Field 1": 6, "Field 2": 25}
+            #HandTable._align = {"Field 1": "r", "Field 2": "c", "Field 3": "r", "Field 4": "c"}
+            # not accepted use?
+            HandTable.padding_width = 2
+            HandTable.align['Field 1'] = "r"
+            HandTable.align['Field 2'] = "c"
+            HandTable.align['Field 3'] = "r"
+            HandTable.align['Field 4'] = "c"
+
+            print(HandTable)
+            HandTable.clear()
+           # HandTable=[] this blows the prettytable class
 
             # Loop through all players, excluding dealer
             for current_players_turn in player_list[1:]:
@@ -111,8 +134,18 @@ while not finish_game:
                         current_players_turn.play_status = "Hold"
                     else:
                         current_players_turn.deal_and_adjust()
-                        player_list[0].show_hand(False)
-                        current_players_turn.show_hand(False)
+
+                        HandTable.add_row(player_list[0].show_hand(False))
+                        HandTable.add_row(current_players_turn.show_hand(False))
+
+                        #HandTable.align['Field 1'] = "r"
+                        HandTable.padding_width = 2
+                        HandTable.align['Field 1'] = "r"
+                        HandTable.align['Field 2'] = "c"
+                        HandTable.align['Field 3'] = "r"
+                        HandTable.align['Field 4'] = "c"
+                        print(HandTable)
+                        HandTable.clear()
 
                     if current_players_turn.current_score >= 21:
                         player_turn_end = True
@@ -146,4 +179,13 @@ while not finish_game:
                     player_list[0].outcome = "Lose"
 
             for participant in player_list:
-                participant.show_hand(True)
+                HandTable.add_row(participant.show_hand(True))
+
+            HandTable.padding_width = 2
+            HandTable.align['Field 1'] = "r"
+            HandTable.align['Field 2'] = "c"
+            HandTable.align['Field 3'] = "r"
+            HandTable.align['Field 4'] = "c"
+
+            print(HandTable)
+            HandTable.clear()
