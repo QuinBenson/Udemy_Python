@@ -23,8 +23,8 @@ tim.pensize(pensize)
 previous = random.randint(0, 3)
 for _ in range(1, 101):
     tim.color(random.choice(colours))
-    # current = get_quadrant(previous)
-    current = random.randint(0, 3)
+    current = get_quadrant(previous)
+    # current = random.randint(0, 3)
     to_angle = (current + 1) * 90
     tim.setheading(to_angle)
     tim.pendown()
